@@ -72,6 +72,8 @@ def detect_finger_ring(frame):
             subImg = cv2.resize(subImg, (0,0), fx=3, fy=3)  
             cv2.imshow("ROI "+str(2), subImg)  
             cv2.waitKey(1)  
+            (x,y),(MA,ma),angle = cv2.fitEllipse(cnt)  
+            print("part2: ", (x,y),(MA,ma),angle)
         except:  
             print("No hand found")  
     
