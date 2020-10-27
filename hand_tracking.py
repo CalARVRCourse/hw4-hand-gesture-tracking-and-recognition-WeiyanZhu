@@ -42,7 +42,7 @@ def detect_finger_ring(frame):
     gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)  
     ret, thresh = cv2.threshold(gray, 0, max_binary_value, cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU )  
     
-    ret, markers, stats, centroids = cv2.connectedComponentsWithStats(gray,ltype=cv2.CV_16U)  
+    ret, markers, stats, centroids = cv2.connectedComponentsWithStats(thresh,ltype=cv2.CV_16U)  
     markers = np.array(markers, dtype=np.uint8)  
     label_hue = np.uint8(179*markers/np.max(markers))  
     blank_ch = 255*np.ones_like(label_hue)  
