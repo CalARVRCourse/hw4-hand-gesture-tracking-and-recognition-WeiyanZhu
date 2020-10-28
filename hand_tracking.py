@@ -84,21 +84,40 @@ def track_fingers(frame):
     _, contours, _ = cv2.findContours(thresholdedHandImage, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)       
     contours=sorted(contours,key=cv2.contourArea,reverse=True)     
     thred = cv2.cvtColor(thresholdedHandImage,cv2.COLOR_GRAY2BGR)  
+    thredAfterFilter = cv2.cvtColor(thresholdedHandImage,cv2.COLOR_GRAY2BGR)
     if len(contours)>1:  
         largestContour = contours[0]  
         hull = cv2.convexHull(largestContour, returnPoints = False)     
         for cnt in contours[:1]:  
             defects = cv2.convexityDefects(cnt,hull)  
             if(not isinstance(defects,type(None))):  
+                fingerCount = 0
                 for i in range(defects.shape[0]):  
                     s,e,f,d = defects[i,0]  
                     start = tuple(cnt[s][0])  
                     end = tuple(cnt[e][0])  
                     far = tuple(cnt[f][0])                   
                     cv2.line(thred,start,end,(0, 255, 0),2) 
-                    #print("start:", start, "end", end)
-                    cv2.circle(thred,far,5,(255, 0, 0),-1)  
-        cv2.imshow("part3", thred)  
+                    cv2.circle(thred,far,5,(0, 0, 255),-1)  
+                    
+                    #partb
+                    s,e,f,d = defects[i,0]  
+                    start = tuple(cnt[s][0])  
+                    end = tuple(cnt[e][0])  
+                    far = tuple(cnt[f][0])  
+                            
+                    c_squared = (end[0] - start[0]) ** 2 + (end[1] - start[1]) ** 2  
+                    a_squared = (far[0] - start[0]) ** 2 + (far[1] - start[1]) ** 2  
+                    b_squared = (end[0] - far[0]) ** 2 + (end[1] - far[1]) ** 2  
+                    angle = np.arccos((a_squared + b_squared  - c_squared ) / (2 * np.sqrt(a_squared * b_squared )))    
+                    
+                    if angle <= np.pi / 3:  
+                        fingerCount += 1  
+                        cv2.circle(thredAfterFilter, far, 4, [0, 0, 255], -1)  
+                cv2.putText(thredAfterFilter, "Finger Counts: " + str(fingerCount+1), (50, 50), cv2.FONT_HERSHEY_SIMPLEX , 1, (255, 0, 0), 2, cv2.LINE_AA)
+
+        cv2.imshow("part3 before filtering", thred)  
+        cv2.imshow("part3 after filtering", thredAfterFilter)  
     
 def nothing(x):
     pass
