@@ -73,9 +73,32 @@ def detect_finger_ring(frame):
             cv2.imshow("ROI "+str(2), subImg)  
             cv2.waitKey(1)  
             (x,y),(MA,ma),angle = cv2.fitEllipse(cnt)  
-            print("part2: ", (x,y),(MA,ma),angle)
+            #print("part2: ", (x,y),(MA,ma),angle)
         except:  
             print("No hand found")  
+            
+def track_fingers(frame):
+    gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)  
+    ret, thresholdedHandImage = cv2.threshold(gray, 0, max_binary_value, cv2.THRESH_OTSU )
+    
+    _, contours, _ = cv2.findContours(thresholdedHandImage, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)       
+    contours=sorted(contours,key=cv2.contourArea,reverse=True)     
+    thred = cv2.cvtColor(thresholdedHandImage,cv2.COLOR_GRAY2BGR)  
+    if len(contours)>1:  
+        largestContour = contours[0]  
+        hull = cv2.convexHull(largestContour, returnPoints = False)     
+        for cnt in contours[:1]:  
+            defects = cv2.convexityDefects(cnt,hull)  
+            if(not isinstance(defects,type(None))):  
+                for i in range(defects.shape[0]):  
+                    s,e,f,d = defects[i,0]  
+                    start = tuple(cnt[s][0])  
+                    end = tuple(cnt[e][0])  
+                    far = tuple(cnt[f][0])                   
+                    cv2.line(thred,start,end,(0, 255, 0),2) 
+                    #print("start:", start, "end", end)
+                    cv2.circle(thred,far,5,(255, 0, 0),-1)  
+        cv2.imshow("part3", thred)  
     
 def nothing(x):
     pass
@@ -116,6 +139,7 @@ while True:
     findContours = (cv2.getTrackbarPos('Contours', window_name) == 1)
     
     frame = extract_hand(frame)
+
     #convert to grayscale
     if isColor == False:
         src_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -135,8 +159,8 @@ while True:
         blur = cv2.GaussianBlur(dst,(blur_value,blur_value),0)
         output = blur
     
-    detect_finger_ring(frame)
-    
+    #detect_finger_ring(frame)
+    track_fingers(frame)
     cv2.imshow(window_name, output)
 
     
