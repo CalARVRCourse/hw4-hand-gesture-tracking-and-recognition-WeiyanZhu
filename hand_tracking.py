@@ -2,6 +2,7 @@ from __future__ import print_function
 import cv2
 import argparse
 import numpy as np
+import pyautogui
 
 max_value = 255
 max_type = 4
@@ -11,6 +12,7 @@ trackbar_value = 'Value'
 trackbar_blur = 'Blur kernel size'
 window_name = 'Threshold Demo'
 isColor = False
+pyautogui.FAILSAFE = False
 
 def extract_hand(frame):
     lower_HSV = np.array([0, 40, 0], dtype = "uint8")  
@@ -87,6 +89,7 @@ def track_fingers(frame):
     thredAfterFilter = cv2.cvtColor(thresholdedHandImage,cv2.COLOR_GRAY2BGR)
     if len(contours)>1:  
         largestContour = contours[0]  
+        move_with_hand_gesture(largestContour)
         hull = cv2.convexHull(largestContour, returnPoints = False)     
         for cnt in contours[:1]:  
             defects = cv2.convexityDefects(cnt,hull)  
@@ -118,6 +121,13 @@ def track_fingers(frame):
 
         cv2.imshow("part3 before filtering", thred)  
         cv2.imshow("part3 after filtering", thredAfterFilter)  
+    
+def move_with_hand_gesture(largestContour):
+    M = cv2.moments(largestContour)  
+    cX = 0 - 2 *int(M["m10"] / M["m00"])  
+    cY = 0 + 2 *int(M["m01"] / M["m00"])  
+    pyautogui.moveTo(cX, cY, duration=0.02, tween=pyautogui.easeInOutQuad)  
+
     
 def nothing(x):
     pass
