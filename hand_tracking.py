@@ -136,12 +136,26 @@ def move_with_hand_gesture(largestContour):
 def check_space_gestures():
     global fingerCount
     global spacePressed
-    print(fingerCount)
     if(fingerCount == 4 and not spacePressed):       
         pyautogui.press('space')  
         spacePressed = True      
     else:
         spacePressed = False  
+
+escape = False
+escape_counter = 0
+escape_target_frame = 90
+
+def check_escape_gestures():
+    global fingerCount
+    global escape
+    global escape_counter
+    if(fingerCount == 1):       
+        escape_counter += 1   
+        if(escape_counter >= escape_target_frame):
+            escape = True
+    else:
+        escape_counter = 0
 
               
 def nothing(x):
@@ -206,11 +220,12 @@ while True:
     detect_finger_ring(frame)
     track_fingers(frame)
     check_space_gestures()
+    check_escape_gestures()
     cv2.imshow(window_name, output)
 
     
     k = cv2.waitKey(1) #k is the key pressed
-    if k == 27 or k==113:  #27, 113 are ascii for escape and q respectively
+    if k == 27 or k==113 or escape:  #27, 113 are ascii for escape and q respectively
         #exit
         cv2.destroyAllWindows()
         cam.release()
