@@ -17,6 +17,9 @@ pyautogui.FAILSAFE = False
 fingerCount = 0
 spacePressed = False
 
+ring_area = -1
+pre_ring_area = -1
+
 def extract_hand(frame):
     lower_HSV = np.array([0, 40, 0], dtype = "uint8")  
     upper_HSV = np.array([25, 255, 255], dtype = "uint8")  
@@ -44,6 +47,8 @@ def extract_hand(frame):
     return skin
 
 def detect_finger_ring(frame):
+    global ring_area    
+    global pre_ring_area
     gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)  
     ret, thresh = cv2.threshold(gray, 0, max_binary_value, cv2.THRESH_BINARY_INV+cv2.THRESH_OTSU )  
     
@@ -60,6 +65,8 @@ def detect_finger_ring(frame):
         try:  
             roi = statsSortedByArea[-3][0:4]  
             x, y, w, h = roi  
+            pre_ring_area = ring_area
+            ring_area = w*h
             subImg = labeled_img[y:y+h, x:x+w]  
             subImg = cv2.cvtColor(subImg, cv2.COLOR_BGR2GRAY);  
             _, contours, _ = cv2.findContours(subImg, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)  
@@ -80,7 +87,12 @@ def detect_finger_ring(frame):
             (x,y),(MA,ma),angle = cv2.fitEllipse(cnt)  
             #print("part2: ", (x,y),(MA,ma),angle)
         except:  
+            pre_ring_area = ring_area
+            ring_area = -1
             print("No hand found")  
+    else:
+        pre_ring_area = ring_area
+        ring_area = -1
             
 def track_fingers(frame):
     global fingerCount
@@ -128,8 +140,8 @@ def track_fingers(frame):
     
 def move_with_hand_gesture(largestContour):
     M = cv2.moments(largestContour)  
-    cX = 0 - 2 *int(M["m10"] / M["m00"])  
-    cY = 0 + 2 *int(M["m01"] / M["m00"])  
+    cX = 0 + 4 *int(M["m10"] / M["m00"])  
+    cY = 0 + 4 *int(M["m01"] / M["m00"])  
     pyautogui.moveTo(cX, cY, duration=0.02, tween=pyautogui.easeInOutQuad)  
 
 
@@ -144,7 +156,7 @@ def check_space_gestures():
 
 escape = False
 escape_counter = 0
-escape_target_frame = 90
+escape_target_frame = 70
 
 def check_escape_gestures():
     global fingerCount
@@ -157,7 +169,23 @@ def check_escape_gestures():
     else:
         escape_counter = 0
 
-              
+threshold = 100
+def check_volume_up_gestures():
+    global ring_area
+    global pre_ring_area
+    global threshold
+    if(ring_area > pre_ring_area + threshold):
+        #pyautogui.hotkey('fn', 'f5')  
+        pyautogui.press('volumeup')
+
+def check_volume_down_gestures():
+    global ring_area
+    global pre_ring_area
+    global threshold
+    if(ring_area < pre_ring_area - threshold):
+        #pyautogui.hotkey('fn', 'f4')       
+        pyautogui.press('volumedown')         
+
 def nothing(x):
     pass
     
@@ -221,6 +249,8 @@ while True:
     track_fingers(frame)
     check_space_gestures()
     check_escape_gestures()
+    check_volume_up_gestures()
+    check_volume_down_gestures()
     cv2.imshow(window_name, output)
 
     
