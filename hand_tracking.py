@@ -14,6 +14,9 @@ window_name = 'Threshold Demo'
 isColor = False
 pyautogui.FAILSAFE = False
 
+fingerCount = 0
+spacePressed = False
+
 def extract_hand(frame):
     lower_HSV = np.array([0, 40, 0], dtype = "uint8")  
     upper_HSV = np.array([25, 255, 255], dtype = "uint8")  
@@ -80,6 +83,7 @@ def detect_finger_ring(frame):
             print("No hand found")  
             
 def track_fingers(frame):
+    global fingerCount
     gray = cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)  
     ret, thresholdedHandImage = cv2.threshold(gray, 0, max_binary_value, cv2.THRESH_OTSU )
     
@@ -128,7 +132,18 @@ def move_with_hand_gesture(largestContour):
     cY = 0 + 2 *int(M["m01"] / M["m00"])  
     pyautogui.moveTo(cX, cY, duration=0.02, tween=pyautogui.easeInOutQuad)  
 
-    
+
+def check_space_gestures():
+    global fingerCount
+    global spacePressed
+    print(fingerCount)
+    if(fingerCount == 4 and not spacePressed):       
+        pyautogui.press('space')  
+        spacePressed = True      
+    else:
+        spacePressed = False  
+
+              
 def nothing(x):
     pass
     
@@ -188,8 +203,9 @@ while True:
         blur = cv2.GaussianBlur(dst,(blur_value,blur_value),0)
         output = blur
     
-    #detect_finger_ring(frame)
+    detect_finger_ring(frame)
     track_fingers(frame)
+    check_space_gestures()
     cv2.imshow(window_name, output)
 
     
