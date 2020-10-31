@@ -59,7 +59,7 @@ def detect_finger_ring(frame):
     labeled_img = cv2.merge([label_hue, blank_ch, blank_ch])
     labeled_img = cv2.cvtColor(labeled_img,cv2.COLOR_HSV2BGR)
     labeled_img[label_hue==0] = 0  
-    
+    cv2.imshow("labeled img", labeled_img)
     statsSortedByArea = stats[np.argsort(stats[:, 4])]  
     if (ret>2):  
         try:  
@@ -85,7 +85,7 @@ def detect_finger_ring(frame):
             cv2.imshow("ROI "+str(2), subImg)  
             cv2.waitKey(1)  
             (x,y),(MA,ma),angle = cv2.fitEllipse(cnt)  
-            #print("part2: ", (x,y),(MA,ma),angle)
+            print("part2: ", "\n  (x, y): ",(x,y),"\n  (MA, ma): ",(MA,ma),"\n  angle: ",angle)
         except:  
             pre_ring_area = ring_area
             ring_area = -1
@@ -138,7 +138,10 @@ def track_fingers(frame):
         cv2.imshow("part3 before filtering", thred)  
         cv2.imshow("part3 after filtering", thredAfterFilter)  
     
+cX = cY = 0
 def move_with_hand_gesture(largestContour):
+    global cX
+    global cY
     M = cv2.moments(largestContour)  
     cX = 0 + 4 *int(M["m10"] / M["m00"])  
     cY = 0 + 4 *int(M["m01"] / M["m00"])  
@@ -156,7 +159,7 @@ def check_space_gestures():
 
 escape = False
 escape_counter = 0
-escape_target_frame = 70
+escape_target_frame = 80
 
 def check_escape_gestures():
     global fingerCount
@@ -184,7 +187,21 @@ def check_volume_down_gestures():
     global threshold
     if(ring_area < pre_ring_area - threshold):
         #pyautogui.hotkey('fn', 'f4')       
-        pyautogui.press('volumedown')         
+        pyautogui.press('volumedown')       
+        
+click_counter =  0
+target_clicks = 50
+def check_click_gestures():
+    global click_counter
+    global target_clicks
+    global cX
+    global cY
+    if (click_counter > target_clicks):
+        print("CLICK")
+        pyautogui.click(x=cX, y=cY, clicks=1, interval=1, button='left')
+        click_counter = 0
+    if (fingerCount == 0):
+        click_counter += 1
 
 def nothing(x):
     pass
@@ -246,11 +263,15 @@ while True:
         output = blur
     
     detect_finger_ring(frame)
+    
     track_fingers(frame)
-    check_space_gestures()
+    #check_space_gestures()
     check_escape_gestures()
+    '''
     check_volume_up_gestures()
     check_volume_down_gestures()
+    '''
+    check_click_gestures()
     cv2.imshow(window_name, output)
 
     
