@@ -15,7 +15,7 @@ isColor = False
 pyautogui.FAILSAFE = False
 
 fingerCount = 0
-spacePressed = False
+spacePressed = 10
 
 ring_area = -1
 pre_ring_area = -1
@@ -59,7 +59,7 @@ def detect_finger_ring(frame):
     labeled_img = cv2.merge([label_hue, blank_ch, blank_ch])
     labeled_img = cv2.cvtColor(labeled_img,cv2.COLOR_HSV2BGR)
     labeled_img[label_hue==0] = 0  
-    cv2.imshow("labeled img", labeled_img)
+    #cv2.imshow("labeled img", labeled_img)
     statsSortedByArea = stats[np.argsort(stats[:, 4])]  
     if (ret>2):  
         try:  
@@ -85,7 +85,7 @@ def detect_finger_ring(frame):
             cv2.imshow("ROI "+str(2), subImg)  
             cv2.waitKey(1)  
             (x,y),(MA,ma),angle = cv2.fitEllipse(cnt)  
-            print("part2: ", "\n  (x, y): ",(x,y),"\n  (MA, ma): ",(MA,ma),"\n  angle: ",angle)
+            #print("part2: ", "\n  (x, y): ",(x,y),"\n  (MA, ma): ",(MA,ma),"\n  angle: ",angle)
         except:  
             pre_ring_area = ring_area
             ring_area = -1
@@ -109,7 +109,6 @@ def track_fingers(frame):
         hull = cv2.convexHull(largestContour, returnPoints = False)     
         for cnt in contours[:1]:  
             defects = cv2.convexityDefects(cnt,hull)  
-            check_zoom_gestures(defects, cnt)
             if(not isinstance(defects,type(None))):  
                 fingerCount = 0
                 for i in range(defects.shape[0]):  
@@ -134,6 +133,7 @@ def track_fingers(frame):
                     if angle <= np.pi / 3:  
                         fingerCount += 1  
                         cv2.circle(thredAfterFilter, far, 4, [0, 0, 255], -1)  
+                check_zoom_gestures(defects, cnt)
                 cv2.putText(thredAfterFilter, "Finger Counts: " + str(fingerCount+1), (50, 50), cv2.FONT_HERSHEY_SIMPLEX , 1, (255, 0, 0), 2, cv2.LINE_AA)
 
         cv2.imshow("part3 before filtering", thred)  
@@ -144,19 +144,19 @@ def move_with_hand_gesture(largestContour):
     global cX
     global cY
     M = cv2.moments(largestContour)  
-    cX = 0 - 4 *int(M["m10"] / M["m00"])  
-    cY = 0 + 4 *int(M["m01"] / M["m00"])  
+    cX = 0 + 4  *int(M["m10"] / M["m00"])        
+    cY = 0 + 2 *int(M["m01"] / M["m00"])  
     pyautogui.moveTo(cX, cY, duration=0.02, tween=pyautogui.easeInOutQuad)  
 
 
 def check_space_gestures():
     global fingerCount
     global spacePressed
-    if(fingerCount == 4 and not spacePressed):       
+    if(fingerCount == 4 and spacePressed<=0):       
         pyautogui.press('space')  
-        spacePressed = True      
+        spacePressed = 20      
     else:
-        spacePressed = False  
+        spacePressed -= 1 
 
 escape = False
 escape_counter = 0
@@ -166,7 +166,7 @@ def check_escape_gestures():
     global fingerCount
     global escape
     global escape_counter
-    if(fingerCount == 1):       
+    if(fingerCount == 2):       
         escape_counter += 1   
         if(escape_counter >= escape_target_frame):
             escape = True
@@ -174,22 +174,33 @@ def check_escape_gestures():
         escape_counter = 0
 
 threshold = 100
+volume_increase_counter = 0
+volume_decrease_counter = 0
 def check_volume_up_gestures():
     global ring_area
     global pre_ring_area
     global threshold
+    global volume_increase_counter
+    global volume_decrease_counter
     if(ring_area > pre_ring_area + threshold):
         #pyautogui.hotkey('fn', 'f5')  
+        volume_increase_counter+=1
+        volume_decrease_counter = 0
+    if(volume_increase_counter > 5):
         pyautogui.press('volumeup')
 
 def check_volume_down_gestures():
     global ring_area
     global pre_ring_area
     global threshold
+    global volume_increase_counter
+    global volume_decrease_counter
     if(ring_area < pre_ring_area - threshold):
         #pyautogui.hotkey('fn', 'f4')       
-        pyautogui.press('volumedown')       
-        
+        volume_decrease_counter+=1
+        volume_increase_counter = 0
+    if(volume_decrease_counter > 5):
+        pyautogui.press('volumedown') 
 click_counter =  0
 target_clicks = 50
 def check_click_gestures():
@@ -206,8 +217,8 @@ def check_click_gestures():
 
 increase_counter = 0
 decrease_counter = 0
-target_increase_num = 10
-target_decrease_num = 10
+target_increase_num = 5
+target_decrease_num = 5
 curr_angle = prev_angle = 0
 def check_zoom_gestures(defects, cnt):
     global increase_counter
@@ -216,9 +227,12 @@ def check_zoom_gestures(defects, cnt):
     global target_decrease_num
     global curr_angle
     global prev_angle
+    global fingerCount
+    thre = 0.05
+    
     # if there is only one detected defect
     # check the angle between the fingers and keep track of it across frames
-    if defects is not None and defects.shape[0] == 1:
+    if defects is not None and fingerCount == 1:
         s,e,f,d = defects[0,0]  
         start = tuple(cnt[s][0])  
         end = tuple(cnt[e][0])  
@@ -228,22 +242,26 @@ def check_zoom_gestures(defects, cnt):
         a_squared = (far[0] - start[0]) ** 2 + (far[1] - start[1]) ** 2  
         b_squared = (end[0] - far[0]) ** 2 + (end[1] - far[1]) ** 2  
         curr_angle = np.arccos((a_squared + b_squared  - c_squared ) / (2 * np.sqrt(a_squared * b_squared )))    
-
-        if curr_angle < prev_angle:  
+        print(decrease_counter, increase_counter, curr_angle)
+        if curr_angle < prev_angle - thre:   
             decrease_counter += 1
-        elif curr_angle > prev_angle: 
+            increase_counter = max(0, increase_counter-0.5)
+            
+        elif curr_angle > prev_angle + thre: 
             increase_counter += 1
+            decrease_counter = max(0, decrease_counter-0.5)
 
         prev_angle = curr_angle
-        
-        if decrease_counter > target_decrease_num:
-            print("ZOOM OUT")
-            #pyautogui.hotkey('ctr','-')
-            decrease_counter = 0
+        #print(prev_angle)
         if increase_counter > target_increase_num:
             print("ZOOM IN")
-            #pyautogui.hotkey('ctr','+')
+            pyautogui.hotkey('ctrl','=')
             increase_counter = 0
+        if decrease_counter > target_decrease_num:
+            print("ZOOM OUT")
+            pyautogui.hotkey('ctrl','-')
+            decrease_counter = 0
+
     
 def nothing(x):
     pass
@@ -305,15 +323,15 @@ while True:
         output = blur
     
     detect_finger_ring(frame)
-    
+        
     track_fingers(frame)
     check_space_gestures()
     check_escape_gestures()
-    '''
+    check_click_gestures()
+    
     check_volume_up_gestures()
     check_volume_down_gestures()
-    '''
-    check_click_gestures()
+    
     cv2.imshow(window_name, output)
 
     
