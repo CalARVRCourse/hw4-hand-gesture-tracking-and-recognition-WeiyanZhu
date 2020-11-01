@@ -109,6 +109,7 @@ def track_fingers(frame):
         hull = cv2.convexHull(largestContour, returnPoints = False)     
         for cnt in contours[:1]:  
             defects = cv2.convexityDefects(cnt,hull)  
+            check_zoom_gestures(defects, cnt)
             if(not isinstance(defects,type(None))):  
                 fingerCount = 0
                 for i in range(defects.shape[0]):  
@@ -143,7 +144,7 @@ def move_with_hand_gesture(largestContour):
     global cX
     global cY
     M = cv2.moments(largestContour)  
-    cX = 0 + 4 *int(M["m10"] / M["m00"])  
+    cX = 0 - 4 *int(M["m10"] / M["m00"])  
     cY = 0 + 4 *int(M["m01"] / M["m00"])  
     pyautogui.moveTo(cX, cY, duration=0.02, tween=pyautogui.easeInOutQuad)  
 
@@ -203,6 +204,47 @@ def check_click_gestures():
     if (fingerCount == 0):
         click_counter += 1
 
+increase_counter = 0
+decrease_counter = 0
+target_increase_num = 10
+target_decrease_num = 10
+curr_angle = prev_angle = 0
+def check_zoom_gestures(defects, cnt):
+    global increase_counter
+    global target_increase_num
+    global decrease_counter
+    global target_decrease_num
+    global curr_angle
+    global prev_angle
+    # if there is only one detected defect
+    # check the angle between the fingers and keep track of it across frames
+    if defects is not None and defects.shape[0] == 1:
+        s,e,f,d = defects[0,0]  
+        start = tuple(cnt[s][0])  
+        end = tuple(cnt[e][0])  
+        far = tuple(cnt[f][0])  
+                
+        c_squared = (end[0] - start[0]) ** 2 + (end[1] - start[1]) ** 2  
+        a_squared = (far[0] - start[0]) ** 2 + (far[1] - start[1]) ** 2  
+        b_squared = (end[0] - far[0]) ** 2 + (end[1] - far[1]) ** 2  
+        curr_angle = np.arccos((a_squared + b_squared  - c_squared ) / (2 * np.sqrt(a_squared * b_squared )))    
+
+        if curr_angle < prev_angle:  
+            decrease_counter += 1
+        elif curr_angle > prev_angle: 
+            increase_counter += 1
+
+        prev_angle = curr_angle
+        
+        if decrease_counter > target_decrease_num:
+            print("ZOOM OUT")
+            #pyautogui.hotkey('ctr','-')
+            decrease_counter = 0
+        if increase_counter > target_increase_num:
+            print("ZOOM IN")
+            #pyautogui.hotkey('ctr','+')
+            increase_counter = 0
+    
 def nothing(x):
     pass
     
@@ -265,7 +307,7 @@ while True:
     detect_finger_ring(frame)
     
     track_fingers(frame)
-    #check_space_gestures()
+    check_space_gestures()
     check_escape_gestures()
     '''
     check_volume_up_gestures()
