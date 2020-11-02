@@ -21,8 +21,8 @@ ring_area = -1
 pre_ring_area = -1
 
 def extract_hand(frame):
-    lower_HSV = np.array([0, 40, 0], dtype = "uint8")  
-    upper_HSV = np.array([25, 255, 255], dtype = "uint8")  
+    lower_HSV = np.array([0, 45, 0], dtype = "uint8")  
+    upper_HSV = np.array([18, 255, 255], dtype = "uint8")  
       
     convertedHSV = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)  
     skinMaskHSV = cv2.inRange(convertedHSV, lower_HSV, upper_HSV)  
