@@ -242,7 +242,7 @@ def check_zoom_gestures(defects, cnt):
         a_squared = (far[0] - start[0]) ** 2 + (far[1] - start[1]) ** 2  
         b_squared = (end[0] - far[0]) ** 2 + (end[1] - far[1]) ** 2  
         curr_angle = np.arccos((a_squared + b_squared  - c_squared ) / (2 * np.sqrt(a_squared * b_squared )))    
-        print(decrease_counter, increase_counter, curr_angle)
+        #print(decrease_counter, increase_counter, curr_angle)
         if curr_angle < prev_angle - thre:   
             decrease_counter += 1
             increase_counter = max(0, increase_counter-0.5)
